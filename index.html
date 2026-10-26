@@ -157,7 +157,7 @@ fieldset{border:none;margin:0;padding:0;min-width:0;display:contents}
    ========================================================= */
 const CONFIG = {
   // رابط تطبيق الويب من Google Apps Script (ينتهي بـ /exec)
-  SCRIPT_URL: 'ضع_رابط_تطبيق_الويب_هنا',
+  SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzuesmcZSIyWr9JcI_3eeADnvB6uhW744wXt-NS1b9oZ40q2qBZaLgKGZAtRwaXOmPJ0A/exec',
   // الصفوف (يجب أن تطابق الصفوف في ملف Code.gs)
   CLASSES: ['التاسع 1', 'التاسع 2', 'التاسع 3', 'التاسع 4'],
   // آخر موعد للتسليم (احتياطي). الموعد الفعلي يُقرأ من خلية B2 في ورقة «ملخص»
@@ -167,6 +167,18 @@ const CONFIG = {
   DRAFT_KEY: 'market-task-draft-v3',
   SENT_KEY: 'market-task-sent-v3'
 };
+
+/* تنظيف رابط Apps Script وفحصه: يقبل الرابط مع مسافات أو / في آخره أو ?… بعده */
+const SCRIPT = (() => {
+  const raw = String(CONFIG.SCRIPT_URL || '').trim();
+  const url = raw.split(/[?#]/)[0].replace(/\/+$/, '');
+  let problem = '';
+  if (!raw || !/^https?:\/\//.test(raw)) problem = 'لم يُوضع رابط Google Apps Script في إعدادات الصفحة (SCRIPT_URL) بعد.';
+  else if (/\/dev$/.test(url)) problem = 'الرابط الموضوع هو رابط الاختبار (ينتهي بـ /dev). استعمل رابط النشر الذي ينتهي بـ /exec.';
+  else if (/docs\.google\.com\/spreadsheets/.test(url)) problem = 'الرابط الموضوع هو رابط الجدول نفسه. المطلوب رابط تطبيق الويب من Apps Script، وينتهي بـ /exec.';
+  else if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)) problem = 'رابط Apps Script غير صحيح. يجب أن يبدأ بـ https://script.google.com/ وينتهي بـ /exec.';
+  return { url, ok: !problem, problem };
+})();
 
 /* =========================================================
    4) محتوى المهمة (100 درجة)
@@ -270,9 +282,9 @@ function timeLeftText() {
 
 // يقرأ الموعد الحالي من Google Sheets (حتى يستطيع المعلم تمديده دون تعديل الصفحة)
 async function syncDeadline() {
-  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(CONFIG.SCRIPT_URL)) return;
+  if (!SCRIPT.ok) return;
   try {
-    const res = await fetch(CONFIG.SCRIPT_URL + '?t=' + Date.now());
+    const res = await fetch(SCRIPT.url + '?t=' + Date.now());
     const info = await res.json();
     if (info.deadline) state.deadline = new Date(info.deadline);
     if (info.now) state.clockOffset = new Date(info.now) - Date.now();
@@ -575,13 +587,13 @@ function renderSubmitBox(error) {
   if (!box) return;
   const missing = REQUIRED.filter(k => !filled(state.ans[k])).length;
   const ready = state.name.trim().length >= 3 && state.klass;
-  const configured = /^https:\/\/script\.google\.com\/.+\/exec$/.test(CONFIG.SCRIPT_URL);
+  const configured = SCRIPT.ok;
   let h = `<h2>تسليم المهمة للمعلم</h2>`;
 
   if (!state.confirming) {
     h += `<p>${missing ? `بقي ${missing} حقلًا دون إجابة. يمكنك التسليم الآن، لكن الأسئلة الفارغة تحصل على صفر.` : 'أجبت عن جميع الأسئلة.'} بعد التسليم لا يمكنك تعديل إجاباتك.</p>`;
     if (!ready) h += `<div class="note warn">اكتب اسمك الكامل واختر صفك في أعلى الصفحة قبل التسليم.</div>`;
-    if (!configured) h += `<div class="note warn">التسليم غير مفعّل بعد: على المعلم وضع رابط Google Apps Script في إعدادات الصفحة.</div>`;
+    if (!configured) h += `<div class="note warn">التسليم غير مفعّل بعد. ${SCRIPT.problem}</div>`;
     h += `<div class="btn-row"><button class="btn accent" id="subBtn" type="button" ${ready && configured ? '' : 'disabled'}>تسليم المهمة للمعلم</button></div>`;
   } else {
     h += `<p>هل أنت متأكد؟ ستُرسل إجاباتك باسم «<b id="cfName"></b>» في صف «${esc(state.klass)}»، ولن تتمكن من تعديلها.</p>
@@ -614,7 +626,7 @@ async function submit() {
   };
 
   // يُرسل كنص عادي حتى لا يحتاج المتصفح إلى طلب CORS تمهيدي
-  const send = mode => fetch(CONFIG.SCRIPT_URL, { method:'POST', mode, body: JSON.stringify(payload) });
+  const send = mode => fetch(SCRIPT.url, { method:'POST', mode, body: JSON.stringify(payload) });
   try {
     let ok = false;
     try {
