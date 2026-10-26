@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مهمة العرض والطلب</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+/* =========================================================
+   1) ألوان وخطوط (فاتح / داكن)
+   ========================================================= */
+:root{
+  --bg:#F3F6FA; --surface:#FFFFFF; --ink:#14213D; --muted:#4A5670; --line:#D9E0EA;
+  --blue:#2B5C8F; --blue-soft:#E4EDF7; --orange:#C2551C; --orange-soft:#FBE8DB;
+  --good:#24704F; --good-soft:#DFF2E8; --bad:#A8322A; --bad-soft:#F9E1DE;
+  --warn:#8A5A00; --warn-soft:#FBF0D6;
+  --display:'Cairo', Tahoma, sans-serif;
+  --body:'IBM Plex Sans Arabic', Tahoma, sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0E1628; --surface:#16213A; --ink:#EDF1F8; --muted:#A8B3C7; --line:#2A3858;
+    --blue:#86AEDD; --blue-soft:#1D2D4D; --orange:#F09A60; --orange-soft:#3A2517;
+    --good:#71C9A0; --good-soft:#163026; --bad:#F2908A; --bad-soft:#3A1C1B;
+    --warn:#E9C26A; --warn-soft:#352A12; color-scheme:dark;
+  }
+}
+
+/* =========================================================
+   2) أساسيات
+   ========================================================= */
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.7}
+h1,h2{font-family:var(--display);line-height:1.3;margin:0;text-wrap:balance}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{max-width:860px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right)) 72px max(16px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:24px}
+
+/* شريط التقدم العلوي */
+.bar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar-in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
+.bar-title{font-family:var(--display);font-weight:800;font-size:18px;white-space:nowrap}
+.meter{flex:1;height:8px;border-radius:99px;background:var(--blue-soft);overflow:hidden;min-width:40px}
+.meter span{display:block;height:100%;width:0;background:var(--blue);border-radius:99px;transition:width .3s}
+.count{font-size:14px;font-weight:600;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* رأس الورقة */
+.paper-head{padding-top:32px;display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:14px;font-weight:600;color:var(--orange)}
+.paper-head h1{font-size:clamp(30px,6vw,42px);font-weight:800}
+.lede{color:var(--muted);max-width:64ch}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:13px;font-weight:700;border-radius:99px;padding:2px 12px;white-space:nowrap}
+.chip.blue{background:var(--blue-soft);color:var(--blue)}
+.chip.muted{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+
+/* بيانات الطالب */
+.ident{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+.ident label{font-weight:600;font-size:15px;display:flex;flex-direction:column;gap:4px;min-width:0}
+@media (max-width:560px){.ident{grid-template-columns:1fr}}
+.field{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 12px;width:100%;min-width:0}
+textarea.field{min-height:96px;resize:vertical;line-height:1.6}
+.num-in{width:110px;direction:ltr;text-align:center;font-variant-numeric:tabular-nums}
+
+/* جدول توزيع الدرجات */
+.points{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow-x:auto}
+.points table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+.points th,.points td{padding:8px 14px;text-align:start;border-bottom:1px solid var(--line);white-space:nowrap}
+.points .num{text-align:center}
+.points tr:last-child td{border-bottom:none;font-weight:700}
+
+/* الأقسام والأسئلة */
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:16px}
+.sec-head{display:flex;gap:14px;align-items:flex-start}
+.sec-letter{flex:none;width:44px;height:44px;border-radius:12px;background:var(--orange-soft);color:var(--orange);font-family:var(--display);font-weight:800;font-size:22px;display:grid;place-items:center}
+.sec-head h2{font-size:23px;font-weight:800}
+.sec-head p{color:var(--muted);font-size:15px}
+.sec-head .chip{margin-inline-start:auto}
+.q{display:flex;flex-direction:column;gap:10px;padding-top:16px;border-top:1px solid var(--line)}
+.q:first-of-type{border-top:none;padding-top:0}
+.q-top{display:flex;gap:10px;align-items:flex-start}
+.q-n{flex:none;font-weight:700;color:var(--blue);min-width:26px;font-variant-numeric:tabular-nums}
+.q-text{font-weight:600;flex:1;min-width:0}
+.q-pts{flex:none;font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap}
+.indent{padding-inline-start:36px;display:flex;flex-direction:column;gap:8px}
+.sub-label{font-size:15px;color:var(--muted)}
+.opts{display:flex;flex-direction:column;gap:6px;padding-inline-start:36px}
+.opts.row{flex-direction:row;flex-wrap:wrap}
+.opt{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:7px 12px;cursor:pointer;background:var(--bg)}
+.opt:has(input:checked){border-color:var(--blue);background:var(--blue-soft)}
+.opt input{accent-color:var(--blue);margin:0}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:620px){.grid2{grid-template-columns:1fr}}
+.cell{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.cell .opts{padding-inline-start:0}
+.inline{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.rubric{border:1px dashed var(--line);border-radius:12px;padding:12px 16px;font-size:15px;color:var(--muted)}
+.rubric ul{margin:4px 0 0;padding-inline-start:20px}
+fieldset{border:none;margin:0;padding:0;min-width:0;display:contents}
+
+/* مختبر التوازن */
+.lab{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:700px){.lab{grid-template-columns:1fr}}
+.chart{width:100%;height:auto;display:block;background:var(--bg);border-radius:14px}
+.ctrl{display:flex;flex-direction:column;gap:14px;min-width:0}
+.slider{display:flex;flex-direction:column;gap:2px}
+.slider label{font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.slider label span{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:500}
+.slider input{width:100%;accent-color:var(--blue)}
+.slider.sup input{accent-color:var(--orange)}
+.ends{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.price{background:var(--blue-soft);border-radius:12px;padding:10px 14px;display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.price b{font-family:var(--display);font-size:28px;font-weight:800;color:var(--blue);font-variant-numeric:tabular-nums;direction:ltr}
+
+/* التسليم والرسائل */
+.submit-box{background:var(--ink);color:var(--bg);border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:14px}
+.submit-box h2{font-size:24px}
+.btn{border:none;border-radius:10px;padding:9px 20px;font-weight:700;cursor:pointer}
+.btn.accent{background:var(--orange);color:var(--ink)}
+.btn.ghost{background:none;border:1px solid currentColor}
+.btn:disabled{opacity:.5;cursor:default}
+.btn-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.note{font-size:15px;border-radius:12px;padding:10px 14px}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.bad{background:var(--bad-soft);color:var(--bad)}
+.note.good{background:var(--good-soft);color:var(--good)}
+.deadline{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:var(--surface);border:1px solid var(--line);border-inline-start:6px solid var(--orange);border-radius:14px;padding:12px 16px}
+.deadline b{font-family:var(--display);font-weight:800}
+.deadline .left{margin-inline-start:auto;font-weight:700;color:var(--orange);font-variant-numeric:tabular-nums}
+.deadline.soon .left{color:var(--bad)}
+.closed{margin-top:48px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:36px 28px;display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.closed .lock{width:56px;height:56px;border-radius:16px;background:var(--bad-soft);display:grid;place-items:center}
+.closed .lock svg{width:30px;height:30px}
+.closed h1{font-size:clamp(26px,5vw,36px);font-weight:800}
+.closed p{color:var(--muted);max-width:60ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="bar"><div class="bar-in">
+  <span class="bar-title">مهمة العرض والطلب</span>
+  <div class="meter" aria-hidden="true"><span id="meterFill"></span></div>
+  <span class="count" id="count"></span>
+</div></header>
+
+<main class="wrap" id="main"></main>
+
+<script>
+/* =========================================================
+   3) الإعدادات: عدّل هذا القسم فقط
+   ========================================================= */
+const CONFIG = {
+  // رابط تطبيق الويب من Google Apps Script (ينتهي بـ /exec)
+  SCRIPT_URL: 'ضع_رابط_تطبيق_الويب_هنا',
+  // الصفوف (يجب أن تطابق الصفوف في ملف Code.gs)
+  CLASSES: ['التاسع 1', 'التاسع 2', 'التاسع 3', 'التاسع 4'],
+  // آخر موعد للتسليم (احتياطي). الموعد الفعلي يُقرأ من خلية B2 في ورقة «ملخص»
+  // الصيغة: سنة-شهر-يومTساعة:دقيقة:ثانية+02:00 (توقيت القدس الشتوي)
+  DEADLINE: '2026-11-05T23:59:00+02:00',
+  // مفتاح حفظ المسودة على جهاز الطالب
+  DRAFT_KEY: 'market-task-draft-v3',
+  SENT_KEY: 'market-task-sent-v3'
+};
+
+/* =========================================================
+   4) محتوى المهمة (100 درجة)
+   مفتاح الإجابات غير موجود هنا: التصحيح يتم في Google Sheets
+   ========================================================= */
+const OPT_RF = ['طلب حقيقي', 'طلب مزيّف'];
+const DIRS = ['يرتفع', 'ينخفض', 'يبقى ثابتًا'];
+const TACTICS = ['ندرة مصطنعة («كمية محدودة»)', 'موجة هوس ومؤثرون', 'طلب حقيقي بلا حيلة تسويقية', 'أسلوب آخر'];
+const RUBRIC = [
+  'وصف المنتج وسعره وسبب انتشاره بوضوح: 4 درجات',
+  'تحديد نوع الطلب (حقيقي أم مزيّف) مع تبرير مقنع: 4 درجات',
+  'الربط بمفاهيم الدرس: العرض والطلب وأساليب التسويق: 4 درجات',
+  'قرار شخصي مدروس يعتمد على سعر أقصى محدد مسبقًا: 4 درجات'
+];
+
+const SECTIONS = [
+  { id:'A', letter:'أ', title:'اختيار من متعدد', sub:'اختر إجابة واحدة صحيحة لكل سؤال', kind:'mcq', points:16, items:[
+    { id:'a1', q:'السهم هو', o:['جزء صغير من ملكية شركة','قرض يقدّمه البنك للشركة','ضريبة تدفعها الشركة','إيصال شراء من متجر'] },
+    { id:'a2', q:'من يحدد سعر السهم في البورصة؟', o:['الشركة نفسها','إدارة البورصة','العرض والطلب','الوسيط أو البنك'] },
+    { id:'a3', q:'نقطة التوازن هي السعر الذي', o:['يكون فيه السعر في أعلى قيمة','تتساوى عنده الكمية المعروضة والكمية المطلوبة','يختاره البائع حسب مزاجه','تبيع فيه الشركة منتجاتها مجانًا'] },
+    { id:'a4', q:'لماذا ينحدر منحنى الطلب من الأعلى إلى الأسفل؟', o:['لأن البائع ينتج أكثر كلما ارتفع السعر','لأنه كلما ارتفع السعر قلّت رغبة المشترين في الشراء','لأن الكمية ثابتة دائمًا','لأن الشركات تخفض الأسعار كل يوم'] },
+    { id:'a5', q:'ماذا يحدث للسعر إذا كان العرض أكبر من الطلب؟', o:['يرتفع','ينخفض','يبقى ثابتًا','يتضاعف'] },
+    { id:'a6', q:'ما دور الوسيط (السمسار) في البورصة؟', o:['يحدد سعر السهم','ينقل أوامر المستثمر إلى البورصة','يوزع أرباح الشركة','يصدر الأسهم الجديدة'] },
+    { id:'a7', q:'مؤشر البورصة هو', o:['سعر سهم أكبر شركة','رقم يلخّص حركة أسعار مجموعة من الأسهم المهمة','عدد الشركات في البورصة','قيمة الدولار مقابل الشيكل'] },
+    { id:'a8', q:'ماذا يعني «التنويع» في الاستثمار؟', o:['شراء أسهم شركة واحدة فقط','بيع الأسهم كل يوم','توزيع المال على أسهم عدة شركات ومجالات','الاعتماد على أخبار مواقع التواصل'] }
+  ]},
+  { id:'B', letter:'ب', title:'حقيقي أم مزيّف؟', sub:'صنّف الطلب في كل موقف', kind:'classify', points:6, items:[
+    { id:'b1', q:'شراء معطف دافئ مع بداية الشتاء' },
+    { id:'b2', q:'مشروب يروّج له المشاهير بكثافة ثم يختفي من المحلات بعد أشهر' },
+    { id:'b3', q:'شراء طعام معلّب وقت أزمة أو حرب' },
+    { id:'b4', q:'حذاء عليه عبارة «بقيت 3 قطع فقط، العرض لليوم فقط»' },
+    { id:'b5', q:'شراء الحلويات قبل العيد' },
+    { id:'b6', q:'جهة تبيع وتشتري سهمها بين حساباتها لتوهم الناس بإقبال كبير' }
+  ]},
+  { id:'C', letter:'ج', title:'توقّع اتجاه السعر وعلّل', sub:'اختر اتجاه السعر (درجة) واكتب السبب بجملة واحدة (درجة)', kind:'predict', points:10, items:[
+    { id:'c1', q:'شركة هواتف تعلن أن أرباحها تضاعفت' },
+    { id:'c2', q:'إشاعة على مواقع التواصل بأن الشركة ستفلس، فيسارع المساهمون إلى البيع' },
+    { id:'c3', q:'لا أخبار جديدة، وعدد الأسهم المطلوبة يساوي عدد الأسهم المعروضة' },
+    { id:'c4', q:'وصول شحنة ضخمة من الموز إلى سوق المدينة' },
+    { id:'c5', q:'عاصفة تُتلف مزارع التفاح فتقلّ الكمية في السوق' }
+  ]},
+  { id:'D', letter:'د', title:'مختبر التوازن', sub:'حرّك المنحنيين لتمثيل كل خبر (درجتان)، ثم اشرح ما حدث للسعر ولماذا (3 درجات)', kind:'lab', points:10, items:[
+    { id:'d1', q:'مثّل على الرسم: شركة «شمس للطاقة» فازت بعقد كبير لتزويد المدارس بالطاقة' },
+    { id:'d2', q:'مثّل على الرسم: وصلت شحنة ضخمة من الموز إلى السوق' }
+  ]},
+  { id:'E', letter:'هـ', title:'احسب الربح أو الخسارة', sub:'لكل مسألة: نوع النتيجة والمبلغ (درجتان)، النسبة المئوية (درجتان)، خطوات الحل (درجتان)', kind:'calc', points:18, items:[
+    { id:'e1', q:'اشترى أحمد 8 أسهم بسعر 15 ₪ للسهم، ثم باعها بسعر 12 ₪ للسهم' },
+    { id:'e2', q:'اشترت ليلى 12 سهمًا بسعر 20 ₪ للسهم، ثم باعتها بسعر 25 ₪ للسهم' },
+    { id:'e3', q:'اشترى يوسف 40 سهمًا بسعر 5 ₪ للسهم، ثم باعها بسعر 6 ₪ للسهم' }
+  ]},
+  { id:'F', letter:'و', title:'أسئلة مفتوحة', sub:'أجب بجمل كاملة وبأسلوبك', kind:'open', points:24, items:[
+    { id:'f1', q:'عرِّف السهم بكلماتك، واذكر سببًا واحدًا يجعل شركة تبيع أسهمًا' },
+    { id:'f2', q:'اشرح الفرق بين الطلب الحقيقي والطلب المزيّف، وأعطِ مثالًا من حياتك على كل منهما' },
+    { id:'f3', q:'صديقك يريد أن يضع كل مدخراته في سهم شركة واحدة سمع عنها في مقطع على الإنترنت. بماذا تنصحه؟ اذكر سببين' },
+    { id:'f4', q:'لماذا اختفى مشروب «برايم» من المحلات بعد فترة قصيرة؟ اربط إجابتك بمفهوم الطلب' }
+  ]},
+  { id:'G', letter:'ز', title:'مهمة أدائية: حلّل منتجًا رائجًا', sub:'اختر منتجًا رائجًا بين أبناء جيلك (مشروب، حذاء، لعبة، تطبيق...) وحلّله', kind:'project', points:16 }
+];
+const TOTAL = SECTIONS.reduce((sum, s) => sum + s.points, 0);
+const PTS = { mcq:'درجتان', classify:'درجة', predict:'درجتان', lab:'5 درجات', calc:'6 درجات', open:'6 درجات' };
+
+/* الحقول المطلوبة: لحساب نسبة الإنجاز */
+const REQUIRED = SECTIONS.flatMap(s => {
+  const ids = (s.items || []).map(it => it.id);
+  switch (s.kind) {
+    case 'mcq': case 'classify': case 'open': return ids;
+    case 'predict': return ids.flatMap(id => [id + '_dir', id + '_why']);
+    case 'lab':     return ids.map(id => id + '_why');
+    case 'calc':    return ids.flatMap(id => [id + '_kind', id + '_amt', id + '_pct', id + '_steps']);
+    case 'project': return ['g_product','g_price','g_why','g_tactic','g_type','g_max','g_decision'];
+  }
+  return [];
+});
+
+/* =========================================================
+   5) الحالة والمسودة
+   ========================================================= */
+const state = {
+  name:'', klass:'', ans:{}, sent:null, sending:false, confirming:false,
+  deadline: new Date(CONFIG.DEADLINE),  // يُستبدل بموعد الخادم عند توفره
+  clockOffset: 0,                         // فرق ساعة الجهاز عن ساعة الخادم
+  closedRendered: false
+};
+
+/* =========================================================
+   الموعد النهائي
+   ========================================================= */
+const now = () => new Date(Date.now() + state.clockOffset);
+const isClosed = () => !isNaN(state.deadline) && now() >= state.deadline;
+const deadlineText = () => state.deadline.toLocaleString('ar', {
+  weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Jerusalem'
+});
+function timeLeftText() {
+  const ms = state.deadline - now();
+  if (ms <= 0) return 'انتهى الموعد';
+  const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
+  if (d > 0) return `بقي ${d} يوم${h ? ' و' + h + ' ساعة' : ''}`;
+  if (h > 0) return `بقي ${h} ساعة${mm ? ' و' + mm + ' دقيقة' : ''}`;
+  return `بقي ${Math.max(mm, 1)} دقيقة`;
+}
+
+// يقرأ الموعد الحالي من Google Sheets (حتى يستطيع المعلم تمديده دون تعديل الصفحة)
+async function syncDeadline() {
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(CONFIG.SCRIPT_URL)) return;
+  try {
+    const res = await fetch(CONFIG.SCRIPT_URL + '?t=' + Date.now());
+    const info = await res.json();
+    if (info.deadline) state.deadline = new Date(info.deadline);
+    if (info.now) state.clockOffset = new Date(info.now) - Date.now();
+    render();
+  } catch (e) { /* نبقى على الموعد الاحتياطي */ }
+}
+
+function renderClosed() {
+  state.closedRendered = true;
+  const sent = state.sent;
+  const lostDraft = !sent && Object.keys(state.ans).length > 0;
+  $('#main').innerHTML = `
+    <section class="closed" role="status">
+      <div class="lock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2" style="fill:none;stroke:var(--bad)" stroke-width="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3" style="fill:none;stroke:var(--bad)" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <p class="eyebrow">مهمة العرض والطلب والأسهم · الصف التاسع</p>
+      <h1>أُغلقت المهمة</h1>
+      <p>انتهى موعد التسليم يوم ${esc(deadlineText())}. لم يعد بالإمكان فتح الأسئلة أو تسليم الإجابات.</p>
+      ${sent ? `<div class="note good">مهمتك سُلّمت في الموعد باسم «${esc(sent.name)}» (${esc(sent.klass)}). سيعلن المعلم النتائج.</div>`
+             : lostDraft ? `<div class="note bad">لم تُسلَّم مهمتك قبل الموعد. إن كان لديك عذر فتواصل مع المعلم.</div>` : ''}
+    </section>`;
+  $('#meterFill').style.width = '100%';
+  $('#count').textContent = 'المهمة مغلقة';
+}
+
+// فحص دوري: يُغلق الصفحة تلقائيًا لحظة انتهاء الموعد ويحدّث العدّاد
+setInterval(() => {
+  if (isClosed()) { if (!state.closedRendered) renderClosed(); return; }
+  const el = $('#timeLeft');
+  if (el) { el.textContent = timeLeftText(); el.parentElement.classList.toggle('soon', state.deadline - now() < 3600000); }
+}, 15000);
+
+function loadDraft() {
+  try {
+    const d = JSON.parse(localStorage.getItem(CONFIG.DRAFT_KEY) || 'null');
+    if (d) Object.assign(state, { name:d.name || '', klass:d.klass || '', ans:d.ans || {} });
+    state.sent = JSON.parse(localStorage.getItem(CONFIG.SENT_KEY) || 'null');
+  } catch (e) { /* التخزين غير متاح */ }
+}
+let draftTimer;
+function saveDraft() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => {
+    try { localStorage.setItem(CONFIG.DRAFT_KEY, JSON.stringify({ name:state.name, klass:state.klass, ans:state.ans })); } catch (e) {}
+  }, 400);
+}
+
+/* =========================================================
+   6) أدوات مساعدة
+   ========================================================= */
+const $ = sel => document.querySelector(sel);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const filled = v => v !== undefined && v !== null && String(v).trim() !== '';
+const fmt = n => Number.isInteger(n) ? String(n) : n.toFixed(1);
+const val = k => esc(state.ans[k]);
+const radio = (name, i, label) =>
+  `<label class="opt"><input type="radio" name="${name}" value="${i}" ${state.ans[name] === i ? 'checked' : ''}>${label}</label>`;
+
+/* =========================================================
+   7) بناء الصفحة
+   ========================================================= */
+function render() {
+  if (isClosed()) { renderClosed(); return; }
+  state.closedRendered = false;
+  const locked = !!state.sent;
+  let n = 0;
+  let h = `
+  <section class="paper-head">
+    <p class="eyebrow">الصف التاسع · الاقتصاد في حياتنا · مهمة تُسلَّم للمعلم</p>
+    <h1>مهمة العرض والطلب والأسهم</h1>
+    <p class="lede">أجب عن جميع الأسئلة، ثم اضغط «تسليم المهمة للمعلم» في نهاية الصفحة. لن تظهر لك الإجابات الصحيحة ولا الدرجات، فالمعلم يصحّح المهمة ويعلن النتائج. يُحفظ ما تكتبه على جهازك تلقائيًا حتى تسلّم.</p>
+    <div class="chips"><span class="chip blue">الدرجة الكاملة: ${TOTAL}</span><span class="chip muted">${SECTIONS.length} أقسام</span><span class="chip muted">الوقت المقترح: 45 دقيقة</span></div>
+  </section>
+  <div class="deadline ${state.deadline - now() < 3600000 ? 'soon' : ''}">
+    <span>آخر موعد للتسليم: <b>${esc(deadlineText())}</b></span>
+    <span class="left" id="timeLeft">${timeLeftText()}</span>
+    <span class="sub-label" style="flex-basis:100%">بعد هذا الموعد تُغلق المهمة تلقائيًا ولا يمكن فتحها أو تسليمها.</span>
+  </div>`;
+
+  if (locked) {
+    const t = new Date(state.sent.at).toLocaleString('ar', { dateStyle:'medium', timeStyle:'short' });
+    h += `<div class="note good">سُلّمت مهمتك للمعلم في ${esc(t)} باسم «${esc(state.sent.name)}» (${esc(state.sent.klass)}). لا حاجة لفعل أي شيء آخر.</div>`;
+  }
+
+  h += `<fieldset ${locked ? 'disabled' : ''}><div class="ident">
+    <label for="stName">الاسم الكامل<input class="field" id="stName" type="text" autocomplete="name" value="${esc(state.name)}" placeholder="الاسم الثلاثي"></label>
+    <label for="stClass">الصف<select class="field" id="stClass">
+      <option value="">اختر صفك</option>
+      ${CONFIG.CLASSES.map(c => `<option ${state.klass === c ? 'selected' : ''}>${c}</option>`).join('')}
+    </select></label>
+  </div></fieldset>`;
+
+  h += `<div class="points"><table><thead><tr><th>القسم</th><th class="num">عدد الأسئلة</th><th class="num">الدرجة</th></tr></thead><tbody>
+    ${SECTIONS.map(s => `<tr><td>${s.letter}. ${s.title}</td><td class="num">${s.items ? s.items.length : 1}</td><td class="num">${s.points}</td></tr>`).join('')}
+    <tr><td>المجموع</td><td class="num"></td><td class="num">${TOTAL}</td></tr></tbody></table></div>`;
+
+  for (const s of SECTIONS) {
+    h += `<section class="sec"><div class="sec-head"><div class="sec-letter">${s.letter}</div>
+      <div><h2>${s.title}</h2><p>${s.sub}</p></div><span class="chip blue">${s.points} درجة</span></div>
+      <fieldset ${locked ? 'disabled' : ''}>`;
+    const top = (it, label) => `<div class="q-top"><span class="q-n">${++n}.</span>${label || `<p class="q-text">${it.q}</p>`}<span class="q-pts">${PTS[s.kind]}</span></div>`;
+
+    if (s.kind === 'mcq') s.items.forEach(it => {
+      h += `<div class="q">${top(it)}<div class="opts">${it.o.map((o, j) => radio(it.id, j, o)).join('')}</div></div>`;
+    });
+
+    if (s.kind === 'classify') {
+      h += `<div class="grid2">`;
+      s.items.forEach(it => { h += `<div class="cell">${top(it)}<div class="opts row">${OPT_RF.map((o, j) => radio(it.id, j, o)).join('')}</div></div>`; });
+      h += `</div>`;
+    }
+
+    if (s.kind === 'predict') s.items.forEach(it => {
+      h += `<div class="q">${top(it)}
+        <div class="opts row">${DIRS.map((o, j) => radio(it.id + '_dir', j, 'السعر ' + o)).join('')}</div>
+        <div class="indent"><label class="sub-label" for="${it.id}_why">السبب</label>
+        <input class="field" id="${it.id}_why" data-k="${it.id}_why" type="text" value="${val(it.id + '_why')}" placeholder="لأن..."></div></div>`;
+    });
+
+    if (s.kind === 'lab') s.items.forEach(it => {
+      const st = state.ans[it.id] || { d:0, s:0 };
+      h += `<div class="q">${top(it)}
+        <div class="lab">
+          <svg class="chart" id="${it.id}_svg" viewBox="0 0 560 400" role="img" aria-label="رسم بياني لمنحنى العرض ومنحنى الطلب"></svg>
+          <div class="ctrl">
+            <div class="price"><span>سعر التوازن</span><b id="${it.id}_p"></b></div>
+            <div class="slider"><label for="${it.id}_d">الطلب <span id="${it.id}_dv"></span></label>
+              <input id="${it.id}_d" data-lab="${it.id}" type="range" min="-10" max="10" step="1" value="${st.d}">
+              <div class="ends"><span>مشترون أقل</span><span>مشترون أكثر</span></div></div>
+            <div class="slider sup"><label for="${it.id}_s">العرض <span id="${it.id}_sv"></span></label>
+              <input id="${it.id}_s" data-lab="${it.id}" type="range" min="-10" max="10" step="1" value="${st.s}">
+              <div class="ends"><span>بائعون أقل</span><span>بائعون أكثر</span></div></div>
+          </div>
+        </div>
+        <label class="sub-label" for="${it.id}_why">اشرح: أي منحنى حرّكت، وفي أي اتجاه، وماذا حدث لسعر التوازن ولماذا؟</label>
+        <textarea class="field" id="${it.id}_why" data-k="${it.id}_why">${val(it.id + '_why')}</textarea></div>`;
+    });
+
+    if (s.kind === 'calc') s.items.forEach(it => {
+      const k = state.ans[it.id + '_kind'];
+      h += `<div class="q">${top(it)}<div class="indent">
+        <div class="inline">
+          <label class="sub-label" for="${it.id}_kind">النتيجة</label>
+          <select class="field" style="width:auto" id="${it.id}_kind" data-k="${it.id}_kind">
+            <option value="">اختر</option>
+            <option value="profit" ${k === 'profit' ? 'selected' : ''}>ربح</option>
+            <option value="loss" ${k === 'loss' ? 'selected' : ''}>خسارة</option>
+          </select>
+          <label class="sub-label" for="${it.id}_amt">المبلغ ₪</label>
+          <input class="field num-in" id="${it.id}_amt" data-k="${it.id}_amt" type="number" inputmode="decimal" value="${val(it.id + '_amt')}">
+          <label class="sub-label" for="${it.id}_pct">النسبة ٪</label>
+          <input class="field num-in" id="${it.id}_pct" data-k="${it.id}_pct" type="number" inputmode="decimal" value="${val(it.id + '_pct')}">
+        </div>
+        <label class="sub-label" for="${it.id}_steps">خطوات الحل</label>
+        <textarea class="field" id="${it.id}_steps" data-k="${it.id}_steps" placeholder="التكلفة = ... ، سعر البيع = ...">${val(it.id + '_steps')}</textarea>
+      </div></div>`;
+    });
+
+    if (s.kind === 'open') s.items.forEach(it => {
+      h += `<div class="q">${top(it, `<label class="q-text" for="${it.id}">${it.q}</label>`)}
+        <div class="indent"><textarea class="field" id="${it.id}" data-k="${it.id}">${val(it.id)}</textarea></div></div>`;
+    });
+
+    if (s.kind === 'project') {
+      h += `<div class="q">
+        <div class="grid2">
+          <label class="sub-label" style="display:flex;flex-direction:column;gap:4px">اسم المنتج<input class="field" id="g_product" data-k="g_product" type="text" value="${val('g_product')}"></label>
+          <label class="sub-label" style="display:flex;flex-direction:column;gap:4px">سعره التقريبي بالشيكل<input class="field" id="g_price" data-k="g_price" type="text" value="${val('g_price')}"></label>
+        </div>
+        <label class="sub-label" for="g_why">لماذا انتشر هذا المنتج بين أبناء جيلك؟</label>
+        <textarea class="field" id="g_why" data-k="g_why">${val('g_why')}</textarea>
+        <p class="sub-label">ما الأسلوب الأوضح في تسويقه؟</p>
+        <div class="opts" style="padding-inline-start:0">${TACTICS.map((t, j) => radio('g_tactic', j, t)).join('')}</div>
+        <label class="sub-label" for="g_type">هل الطلب عليه حقيقي أم مزيّف؟ برّر باستخدام مفاهيم الدرس</label>
+        <textarea class="field" id="g_type" data-k="g_type">${val('g_type')}</textarea>
+        <div class="inline"><label class="sub-label" for="g_max">أعلى سعر أقبل أن أدفعه ₪</label>
+          <input class="field num-in" id="g_max" data-k="g_max" type="number" inputmode="decimal" value="${val('g_max')}"></div>
+        <label class="sub-label" for="g_decision">قراري: هل أشتريه الآن، أم أنتظر، أم لا أشتريه؟ ولماذا؟</label>
+        <textarea class="field" id="g_decision" data-k="g_decision">${val('g_decision')}</textarea>
+        <div class="rubric"><b>معايير التصحيح (16 درجة)</b><ul>${RUBRIC.map(r => `<li>${r}</li>`).join('')}</ul></div>
+      </div>`;
+    }
+    h += `</fieldset></section>`;
+  }
+
+  if (!locked) h += `<section class="submit-box" id="submitBox"></section>`;
+  $('#main').innerHTML = h;
+
+  SECTIONS.find(s => s.kind === 'lab').items.forEach(it => drawLab(it.id));
+  renderSubmitBox();
+  updateProgress();
+}
+
+function updateProgress() {
+  const done = REQUIRED.filter(k => filled(state.ans[k])).length;
+  $('#meterFill').style.width = (done / REQUIRED.length * 100) + '%';
+  $('#count').textContent = state.sent ? 'تم التسليم' : `أجبت عن ${done} من ${REQUIRED.length}`;
+}
+
+/* =========================================================
+   8) مختبر التوازن
+   العرض: P = 5 − s + 0.3Q   الطلب: P = 35 + d − 0.3Q
+   سعر التوازن: P* = 20 + (d − s) / 2
+   ========================================================= */
+const eqPrice = st => 20 + ((st.d || 0) - (st.s || 0)) / 2;
+
+function drawLab(id) {
+  const st = state.ans[id] || { d:0, s:0 };
+  const d = st.d || 0, s = st.s || 0;
+  const Q = (30 + d + s) / 0.6, P = eqPrice(st);
+  const X = q => 60 + q * 4.7, Y = p => 350 - p * 8;
+  const sup = q => 5 - s + 0.3 * q, dem = q => 35 + d - 0.3 * q;
+  const L = (x1, y1, x2, y2, c, w, dash) =>
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" style="stroke:${c}" stroke-width="${w}" ${dash ? `stroke-dasharray="${dash}"` : ''} stroke-linecap="round"/>`;
+  const T = (x, y, txt, c, anchor = 'start', w = 700) =>
+    `<text x="${x}" y="${y}" text-anchor="${anchor}" style="fill:${c}" font-size="15" font-weight="${w}" font-family="Cairo, Tahoma, sans-serif">${txt}</text>`;
+
+  let g = `<defs><clipPath id="${id}_clip"><rect x="60" y="20" width="470" height="330"/></clipPath></defs>`;
+  for (let p = 0; p <= 40; p += 10) g += L(60, Y(p), 530, Y(p), 'var(--line)', 1) + T(50, Y(p) + 5, p, 'var(--muted)', 'end', 500);
+  g += L(60, 20, 60, 350, 'var(--ink)', 2.5) + L(60, 350, 530, 350, 'var(--ink)', 2.5);
+  g += T(66, 16, 'السعر ₪', 'var(--ink)') + T(530, 380, 'الكمية', 'var(--ink)', 'end');
+  g += `<g clip-path="url(#${id}_clip)">`
+     + L(X(0), Y(sup(0)), X(100), Y(sup(100)), 'var(--orange)', 5)
+     + L(X(0), Y(dem(0)), X(100), Y(dem(100)), 'var(--blue)', 5)
+     + L(60, Y(20), X(50), Y(20), 'var(--muted)', 1.5, '4 6') + `</g>`;
+  if (Q >= 0 && Q <= 100 && P >= 0 && P <= 40) {
+    g += L(60, Y(P), X(Q), Y(P), 'var(--ink)', 1.5, '6 6') + L(X(Q), Y(P), X(Q), 350, 'var(--ink)', 1.5, '6 6')
+       + `<circle cx="${X(Q)}" cy="${Y(P)}" r="9" style="fill:var(--surface);stroke:var(--ink)" stroke-width="4"/>`;
+  }
+  g += T(X(92), Math.max(34, Math.min(340, Y(sup(92)))) - 12, 'العرض', 'var(--orange)', 'middle');
+  g += T(X(8) + 18, Math.max(34, Math.min(340, Y(dem(8)))) - 12, 'الطلب', 'var(--blue)', 'middle');
+  $(`#${id}_svg`).innerHTML = g;
+
+  const desc = (v, up, down) => v === 0 ? 'بلا تغيير' : (v > 0 ? up : down) + ' ' + Math.abs(v);
+  $(`#${id}_p`).textContent = fmt(P) + ' ₪';
+  $(`#${id}_dv`).textContent = desc(d, 'زيادة', 'نقص');
+  $(`#${id}_sv`).textContent = desc(s, 'زيادة', 'نقص');
+}
+
+/* =========================================================
+   9) استقبال إجابات الطالب
+   ========================================================= */
+const main = $('#main');
+main.addEventListener('change', e => {
+  if (state.sent) return;
+  const t = e.target;
+  if (t.id === 'stClass') { state.klass = t.value; saveDraft(); renderSubmitBox(); return; }
+  if (t.type === 'radio') state.ans[t.name] = Number(t.value);
+  else if (t.tagName === 'SELECT' && t.dataset.k) state.ans[t.dataset.k] = t.value;
+  else return;
+  saveDraft(); updateProgress(); renderSubmitBox();
+});
+main.addEventListener('input', e => {
+  if (state.sent) return;
+  const t = e.target;
+  if (t.id === 'stName') { state.name = t.value; saveDraft(); renderSubmitBox(); return; }
+  if (t.dataset.lab) {
+    const id = t.dataset.lab;
+    state.ans[id] = { d: +$(`#${id}_d`).value, s: +$(`#${id}_s`).value };
+    drawLab(id); saveDraft(); return;
+  }
+  if (t.dataset.k && t.tagName !== 'SELECT') {
+    state.ans[t.dataset.k] = t.value; saveDraft(); updateProgress(); renderSubmitBox();
+  }
+});
+
+/* =========================================================
+   10) نص مقروء لكل إجابة (يُكتب في ورقة «الإجابات»)
+   ========================================================= */
+function readableAnswers() {
+  const a = state.ans, out = {};
+  const pick = (list, i) => (i === undefined ? '' : list[i]);
+  for (const s of SECTIONS) {
+    (s.items || []).forEach(it => {
+      if (s.kind === 'mcq') out[it.id] = pick(it.o, a[it.id]);
+      if (s.kind === 'classify') out[it.id] = pick(OPT_RF, a[it.id]);
+      if (s.kind === 'predict') { out[it.id + '_dir'] = pick(DIRS, a[it.id + '_dir']); out[it.id + '_why'] = a[it.id + '_why'] || ''; }
+      if (s.kind === 'lab') {
+        const st = a[it.id] || { d:0, s:0 };
+        out[it.id] = `الطلب ${st.d > 0 ? '+' : ''}${st.d}، العرض ${st.s > 0 ? '+' : ''}${st.s}، السعر ${fmt(eqPrice(st))} ₪`;
+        out[it.id + '_why'] = a[it.id + '_why'] || '';
+      }
+      if (s.kind === 'calc') {
+        const k = a[it.id + '_kind'];
+        out[it.id + '_kind'] = k === 'profit' ? 'ربح' : k === 'loss' ? 'خسارة' : '';
+        ['_amt', '_pct', '_steps'].forEach(x => out[it.id + x] = a[it.id + x] ?? '');
+      }
+      if (s.kind === 'open') out[it.id] = a[it.id] || '';
+    });
+  }
+  ['g_product','g_price','g_why','g_type','g_max','g_decision'].forEach(k => out[k] = a[k] ?? '');
+  out.g_tactic = pick(TACTICS, a.g_tactic);
+  return out;
+}
+
+/* =========================================================
+   11) التسليم إلى Google Sheets
+   ========================================================= */
+function renderSubmitBox(error) {
+  const box = $('#submitBox');
+  if (!box) return;
+  const missing = REQUIRED.filter(k => !filled(state.ans[k])).length;
+  const ready = state.name.trim().length >= 3 && state.klass;
+  const configured = /^https:\/\/script\.google\.com\/.+\/exec$/.test(CONFIG.SCRIPT_URL);
+  let h = `<h2>تسليم المهمة للمعلم</h2>`;
+
+  if (!state.confirming) {
+    h += `<p>${missing ? `بقي ${missing} حقلًا دون إجابة. يمكنك التسليم الآن، لكن الأسئلة الفارغة تحصل على صفر.` : 'أجبت عن جميع الأسئلة.'} بعد التسليم لا يمكنك تعديل إجاباتك.</p>`;
+    if (!ready) h += `<div class="note warn">اكتب اسمك الكامل واختر صفك في أعلى الصفحة قبل التسليم.</div>`;
+    if (!configured) h += `<div class="note warn">التسليم غير مفعّل بعد: على المعلم وضع رابط Google Apps Script في إعدادات الصفحة.</div>`;
+    h += `<div class="btn-row"><button class="btn accent" id="subBtn" type="button" ${ready && configured ? '' : 'disabled'}>تسليم المهمة للمعلم</button></div>`;
+  } else {
+    h += `<p>هل أنت متأكد؟ ستُرسل إجاباتك باسم «<b id="cfName"></b>» في صف «${esc(state.klass)}»، ولن تتمكن من تعديلها.</p>
+      <div class="btn-row">
+        <button class="btn accent" id="cfYes" type="button" ${state.sending ? 'disabled' : ''}>${state.sending ? 'جارٍ الإرسال...' : 'نعم، سلّم الآن'}</button>
+        <button class="btn ghost" id="cfNo" type="button" ${state.sending ? 'disabled' : ''}>رجوع للمراجعة</button>
+      </div>`;
+  }
+  if (error) h += `<div class="note bad">${error}</div>`;
+  box.innerHTML = h;
+
+  const nm = $('#cfName'); if (nm) nm.textContent = state.name.trim();
+  $('#subBtn')?.addEventListener('click', () => { state.confirming = true; renderSubmitBox(); });
+  $('#cfNo')?.addEventListener('click', () => { state.confirming = false; renderSubmitBox(); });
+  $('#cfYes')?.addEventListener('click', submit);
+}
+
+async function submit() {
+  if (state.sending) return;
+  if (isClosed()) { renderClosed(); return; }
+  state.sending = true; renderSubmitBox();
+
+  const payload = {
+    id: (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2)),
+    name: state.name.trim(),
+    klass: state.klass,
+    submittedAt: new Date().toISOString(),
+    answers: state.ans,
+    display: readableAnswers()
+  };
+
+  // يُرسل كنص عادي حتى لا يحتاج المتصفح إلى طلب CORS تمهيدي
+  const send = mode => fetch(CONFIG.SCRIPT_URL, { method:'POST', mode, body: JSON.stringify(payload) });
+  try {
+    let ok = false;
+    try {
+      const res = await send('cors');
+      const json = await res.json();
+      if (json.closed) {
+        // الخادم يرفض: الموعد انتهى (حتى لو كانت ساعة الجهاز متأخرة)
+        if (json.deadline) state.deadline = new Date(json.deadline);
+        if (json.now) state.clockOffset = new Date(json.now) - Date.now();
+        state.sending = false; state.confirming = false;
+        renderClosed(); return;
+      }
+      if (!json.ok) throw new Error(json.error || 'rejected');
+      ok = true;
+    } catch (err) {
+      if (err.message && err.message !== 'Failed to fetch' && !(err instanceof TypeError)) throw err;
+      // بعض المتصفحات تحجب قراءة الرد؛ نعيد الإرسال دون قراءة الرد (الخادم يتجاهل التكرار بنفس الرقم)
+      await send('no-cors');
+      ok = true;
+    }
+    if (ok) {
+      state.sent = { at: payload.submittedAt, name: payload.name, klass: payload.klass };
+      try {
+        localStorage.setItem(CONFIG.SENT_KEY, JSON.stringify(state.sent));
+        localStorage.setItem(CONFIG.DRAFT_KEY, JSON.stringify({ name:state.name, klass:state.klass, ans:state.ans }));
+      } catch (e) {}
+      state.sending = false; state.confirming = false;
+      render(); window.scrollTo({ top:0, behavior:'smooth' });
+    }
+  } catch (err) {
+    state.sending = false; state.confirming = false;
+    renderSubmitBox('تعذّر الإرسال. تحقّق من اتصالك بالإنترنت ثم اضغط «تسليم» مرة أخرى. إجاباتك محفوظة على جهازك.');
+  }
+}
+
+/* =========================================================
+   12) التشغيل
+   ========================================================= */
+loadDraft();
+render();
+syncDeadline();
+</script>
+</body>
+</html>
